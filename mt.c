@@ -72,6 +72,7 @@ void mt_init_status( mt_status_t * stat, unsigned int total_test)
 	stat->nb_assert_passed = 0;
 	stat->messages.first = NULL;
 	stat->messages.last = NULL;
+	stat->aborting = 0;
 }
 
 void mt_print_status( mt_status_t * stat )

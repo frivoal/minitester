@@ -41,6 +41,14 @@ do \
 	} \
 } while(0)
 
+#define MT_ABORT()\
+do \
+{ \
+	mt_status->aborting = 1; \
+	mt_append_message( mt_status, "Aborting from " __FILE__ " line " MT_QUOTEME(__LINE__) ); \
+	return; \
+} while(0)
+
 typedef struct _mt_message_node
 {
 	char * msg;
@@ -61,6 +69,7 @@ typedef struct
 	unsigned int nb_assert;
 	unsigned int nb_assert_passed;
 	mt_message_list messages;
+	unsigned int aborting;
 } mt_status_t;
 
 mt_status_t * mt_status;

@@ -50,7 +50,7 @@ ARGV[1..-1].each do |file|
 	suites[suite] = "void suite_#{suite}()\n{\n"
 	symbols.each do |line|
 		if line =~ /FUNC *GLOBAL.*test_(.*)/
-			suites[suite] += "\ttest_#{$1}(); mt_status->nb_test_run++;\n"
+			suites[suite] += "\ttest_#{$1}(); if( mt_status->aborting ) { mt_status->aborting = 0; } else { mt_status->nb_test_run++; }\n"
 			nb_test += 1
 		end
 	end
