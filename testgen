@@ -50,7 +50,7 @@ ARGV[1..-1].each do |file|
 	suites[suite] = "void suite_#{suite}()\n{\n"
 	symbols.each do |line|
 		if line =~ /FUNC *GLOBAL.*test_(.*)/
-			suites[suite] += "\ttest_#{$1}(); status->nb_test_run++;\n"
+			suites[suite] += "\ttest_#{$1}(); mt_status->nb_test_run++;\n"
 			nb_test += 1
 		end
 	end
@@ -71,8 +71,8 @@ program += <<EOS
 int main()
 {
 	int res;
-	status = malloc( sizeof( mt_status ) );
-	mt_init_status( status, #{nb_test} );
+	mt_status = malloc( sizeof( mt_status_t ) );
+	mt_init_status( mt_status, #{nb_test} );
 
 EOS
 
@@ -84,10 +84,10 @@ EOS
 end
 
 program += <<EOS
-	mt_print_status( status );
+	mt_print_status( mt_status );
 	
-	res = !mt_success( status );
-	mt_cleanup_status( status );
+	res = !mt_success( mt_status );
+	mt_cleanup_status( mt_status );
 	return res;
 }
 EOS

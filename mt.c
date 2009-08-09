@@ -25,7 +25,7 @@
 #include "stdlib.h"
 #include "stdio.h"
 
-void mt_append_message( mt_status * stat, char * msg)
+void mt_append_message( mt_status_t * stat, char * msg)
 {
 	mt_message_node * node;
 	mt_message_list * list;
@@ -48,7 +48,7 @@ void mt_append_message( mt_status * stat, char * msg)
 	}
 }
 
-void mt_cleanup_status( mt_status * stat)
+void mt_cleanup_status( mt_status_t * stat)
 {
 	mt_message_node * current;
 	mt_message_node * next;
@@ -64,7 +64,7 @@ void mt_cleanup_status( mt_status * stat)
 	free(stat);
 }
 
-void mt_init_status( mt_status * stat, unsigned int total_test)
+void mt_init_status( mt_status_t * stat, unsigned int total_test)
 {
 	stat->nb_test = total_test;
 	stat->nb_test_run = 0;
@@ -74,7 +74,7 @@ void mt_init_status( mt_status * stat, unsigned int total_test)
 	stat->messages.last = NULL;
 }
 
-void mt_print_status( mt_status * stat )
+void mt_print_status( mt_status_t * stat )
 {
 	mt_message_node * node;
 
@@ -87,7 +87,7 @@ void mt_print_status( mt_status * stat )
 
 }
 
-int mt_success( mt_status * stat )
+int mt_success( mt_status_t * stat )
 {
 	return stat->nb_test == stat->nb_test_run && stat->nb_assert == stat->nb_assert_passed;
 }

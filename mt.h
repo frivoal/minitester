@@ -30,14 +30,14 @@
 #define MT_ASSERT(expr) \
 do \
 { \
-	status->nb_assert++; \
+	mt_status->nb_assert++; \
 	if(expr) \
 	{ \
-		status->nb_assert_passed++; \
+		mt_status->nb_assert_passed++; \
 	} \
 	else \
 	{ \
-		mt_append_message( status, "Assertion failed in  " __FILE__ " line " MT_QUOTEME(__LINE__) ": " #expr ); \
+		mt_append_message( mt_status, "Assertion failed in  " __FILE__ " line " MT_QUOTEME(__LINE__) ": " #expr ); \
 	} \
 } while(0)
 
@@ -61,15 +61,15 @@ typedef struct
 	unsigned int nb_assert;
 	unsigned int nb_assert_passed;
 	mt_message_list messages;
-} mt_status;
+} mt_status_t;
 
-mt_status * status;
+mt_status_t * mt_status;
 
-void mt_init_status( mt_status * stat, unsigned int total_test );
-void mt_cleanup_status( mt_status * stat );
-void mt_append_message( mt_status * stat, char * msg );
-void mt_print_status( mt_status * stat );
-int mt_success( mt_status * stat );
+void mt_init_status( mt_status_t * stat, unsigned int total_test );
+void mt_cleanup_status( mt_status_t * stat );
+void mt_append_message( mt_status_t * stat, char * msg );
+void mt_print_status( mt_status_t * stat );
+int mt_success( mt_status_t * stat );
 
 
 #endif // MT_H
