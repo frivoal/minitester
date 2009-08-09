@@ -46,7 +46,7 @@ nb_test = 0
 
 ARGV[1..-1].each do |file|
 	suite = file.sub(/\.o$/, "")
-	symbols = `readelf -sW #{suite}.o `
+	symbols = `readelf -sW #{suite}.o `.split "\n"
 	suites[suite] = "void suite_#{suite}()\n{\n"
 	symbols.each do |line|
 		if line =~ /FUNC *GLOBAL.*test_(.*)/
