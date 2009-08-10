@@ -47,6 +47,12 @@ class TestSuite
 	def each
 		@tests.each { |test| yield test }
 	end
+	def declarations
+		code = ""
+		each { |test| code += "void test_#{test}();\n" }
+		return code
+	end
+
 	def body
 		code = "void suite_#{@name}()\n{\n"
 		each do |test|
@@ -80,6 +86,7 @@ EOS
 	end
 	def generate_suites
 		@suites.each do |suite|
+			@program += suite.declarations
 			@program += suite.body
 			@program += "\n"
 		end
