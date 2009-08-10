@@ -22,6 +22,112 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+class TestSuite
+	attr_reader :name
+	def initialize(name)
+		@name = name.sub(/\.o$/, "")
+		@tests = []
+		find_tests
+	end
+
+	private
+	def find_tests
+		symbols = `readelf -sW #{@name}.o `.split "\n"
+		symbols.each do |line|
+			if line =~ /FUNC *GLOBAL.*test_(.*)/
+				@tests << $1
+			end
+		end
+	end
+
+	public
+	def size
+		@tests.size
+	end
+	def each
+		@tests.each { |test| yield test }
+	end
+	def body
+		code = "void suite_#{@name}()\n{\n"
+		each do |test|
+			code += "\ttest_#{test}();\n"
+			code += "\tif( mt_status->aborting ) { mt_status->aborting = 0; } else { mt_status->nb_test_run++; }\n"
+		end
+		code += "}\n"
+	end	
+	def runner
+		code = <<EOS
+	printf("Running test suite: \\"#{name}\\"...\\n");
+	suite_#{name}();
+EOS
+	end
+	private :find_tests
+end
+
+class TesterGenerator
+	def initialize
+		@suites = []
+	end
+
+	private
+	def generate_includes
+		@program = <<EOS
+#include "mt.h"
+#include "stdlib.h"
+#include "stdio.h"
+
+EOS
+	end
+	def generate_suites
+		@suites.each do |suite|
+			@program += suite.body
+			@program += "\n"
+		end
+	end
+	def generate_main_opening
+		@program += <<EOS
+int main()
+{
+	int res;
+	mt_status = malloc( sizeof( mt_status_t ) );
+	mt_init_status( mt_status, #{@suites.inject(0) {|sum, suite| sum + suite.size }} );
+
+EOS
+	end
+	def generate_main_body
+		@suites.each do |suite|
+			@program += suite.runner
+		end
+	end
+	def generate_main_closing
+		@program += <<EOS
+	mt_print_status( mt_status );
+
+	res = !mt_success( mt_status );
+	mt_cleanup_status( mt_status );
+	return res;
+}
+EOS
+	end
+	def generate_program
+		generate_includes
+		generate_suites
+		generate_main_opening
+		generate_main_body
+		generate_main_closing
+	end
+
+	public
+	def add_suite(file)
+		@suites << (TestSuite.new file)
+	end
+	def write_output(file)
+		generate_program
+		File.open(ARGV[0],"w") do |file|
+			file.write @program
+		end
+	end
+end
 
 if ARGV.size < 2 || ARGV[0] == "-h" || ARGV[0] == "--help"
 	print <<EOS
@@ -41,57 +147,12 @@ EOS
 	exit 1
 end
 
-suites = Hash.new
-nb_test = 0
-
+generator = TesterGenerator.new
 ARGV[1..-1].each do |file|
-	suite = file.sub(/\.o$/, "")
-	symbols = `readelf -sW #{suite}.o `.split "\n"
-	suites[suite] = "void suite_#{suite}()\n{\n"
-	symbols.each do |line|
-		if line =~ /FUNC *GLOBAL.*test_(.*)/
-			suites[suite] += "\ttest_#{$1}(); if( mt_status->aborting ) { mt_status->aborting = 0; } else { mt_status->nb_test_run++; }\n"
-			nb_test += 1
-		end
-	end
-	suites[suite] += "}\n"
+	generator.add_suite file
 end
+generator.write_output ARGV[0]
 
-program = <<EOS
-#include "mt.h"
-#include "stdlib.h"
-#include "stdio.h"
-EOS
 
-suites.each do |name,code|
-	program += "#{code}\n"
-end
 
-program += <<EOS
-int main()
-{
-	int res;
-	mt_status = malloc( sizeof( mt_status_t ) );
-	mt_init_status( mt_status, #{nb_test} );
 
-EOS
-
-suites.each do |name,code|
-	program += <<EOS
-	printf("Running test suite: \\"#{name}\\"...\\n");
-	suite_#{name}();
-EOS
-end
-
-program += <<EOS
-	mt_print_status( mt_status );
-	
-	res = !mt_success( mt_status );
-	mt_cleanup_status( mt_status );
-	return res;
-}
-EOS
-
-File.open(ARGV[0],"w") do |file|
-	file.write program
-end
