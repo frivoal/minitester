@@ -23,6 +23,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class TestSuite
+	include Enumerable
 	attr_reader :name
 	def initialize(name)
 		@name = name.sub(/\.o$/, "")
@@ -32,8 +33,8 @@ class TestSuite
 
 	private
 	def find_tests
-		symbols = `readelf -sW #{@name}.o `.split "\n"
-		symbols.each do |line|
+		symbols = `readelf -sW #{@name}.o `
+		symbols.each_line do |line|
 			if line =~ /FUNC *GLOBAL.*test_(.*)/
 				@tests << $1
 			end
@@ -48,18 +49,14 @@ class TestSuite
 		@tests.each { |test| yield test }
 	end
 	def declarations
-		code = ""
-		each { |test| code += "void test_#{test}();\n" }
-		return code
+		inject("") { |code,test| code + "void test_#{test}();\n" }
 	end
 
 	def body
-		code = "void suite_#{@name}()\n{\n"
-		each do |test|
-			code += "\ttest_#{test}();\n"
-			code += "\tif( mt_status->aborting ) { mt_status->aborting = 0; } else { mt_status->nb_test_run++; }\n"
-		end
-		code += "}\n"
+		inject("void suite_#{@name}()\n{\n") do |code, test|
+			code + "\ttest_#{test}();\n" +
+			"\tif( mt_status->aborting ) { mt_status->aborting = 0; } else { mt_status->nb_test_run++; }\n"
+		end + "}\n"
 	end	
 	def runner
 		code = <<EOS
@@ -102,9 +99,7 @@ int main()
 EOS
 	end
 	def generate_main_body
-		@suites.each do |suite|
-			@program += suite.runner
-		end
+		@program += @suites.inject("") { |code, suite| code + suite.runner }
 	end
 	def generate_main_closing
 		@program += <<EOS
@@ -125,14 +120,12 @@ EOS
 	end
 
 	public
-	def add_suite(file)
-		@suites << (TestSuite.new file)
+	def add_suite(suite)
+		@suites << suite
 	end
 	def write_output(file)
 		generate_program
-		File.open(ARGV[0],"w") do |file|
-			file.write @program
-		end
+		file.write @program
 	end
 end
 
@@ -156,9 +149,11 @@ end
 
 generator = TesterGenerator.new
 ARGV[1..-1].each do |file|
-	generator.add_suite file
+	generator.add_suite(TestSuite.new file)
 end
-generator.write_output ARGV[0]
+File.open(ARGV[0],"w") do |file|
+	generator.write_output file
+end
 
 
 
