@@ -22,35 +22,66 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'lib/testsuite.rb'
-require 'lib/testgenerator.rb'
+module MiniTester
+class Generator
+	def initialize
+		@suites = []
+	end
 
-if ARGV.size < 2 || ARGV[0] == "-h" || ARGV[0] == "--help"
-	print <<EOS
-Testgen is part of Mini Tester
-Copyright (c) 2009, Florian Rivoal
+	private
+	def generate_includes
+		@program = <<EOS
+#include "mt.h"
+#include "stdlib.h"
+#include "stdio.h"
 
-Usage:
-	testgen <out.c> <test_suite_1> [<test_suite_2> ...]
-
-The files designated as test suites must be .o files. Testgen will automatically
-find all the functions in these .o files beginning with the word "test_", and
-generate a simple c program to run all these tests.
-
-This programm should be compiled, then linked against mt.o, the test suites' o
-files, and all the .o files that the test suites depend on themselves.
 EOS
-	exit 1
+	end
+	def generate_suites
+		@suites.each do |suite|
+			@program += suite.declarations
+			@program += suite.body
+			@program += "\n"
+		end
+	end
+	def generate_main_opening
+		@program += <<EOS
+int main()
+{
+	int res;
+	mt_status = malloc( sizeof( mt_status_t ) );
+	mt_init_status( mt_status, #{@suites.inject(0) {|sum, suite| sum + suite.size }} );
+
+EOS
+	end
+	def generate_main_body
+		@program += @suites.inject("") { |code, suite| code + suite.runner }
+	end
+	def generate_main_closing
+		@program += <<EOS
+	mt_print_status( mt_status );
+
+	res = !mt_success( mt_status );
+	mt_cleanup_status( mt_status );
+	return res;
+}
+EOS
+	end
+	def generate_program
+		generate_includes
+		generate_suites
+		generate_main_opening
+		generate_main_body
+		generate_main_closing
+	end
+
+	public
+	def add_suite(suite)
+		@suites << suite
+	end
+	def write_output(file)
+		generate_program
+		file.write @program
+	end
 end
-
-generator = MiniTester::Generator.new
-ARGV[1..-1].each do |file|
-	generator.add_suite(MiniTester::Suite.new file)
 end
-File.open(ARGV[0],"w") do |file|
-	generator.write_output file
-end
-
-
-
-

@@ -22,35 +22,49 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'lib/testsuite.rb'
-require 'lib/testgenerator.rb'
+module MiniTester
+class Suite
+	include Enumerable
+	attr_reader :name
+	def initialize(name)
+		@name = name.sub(/\.o$/, "")
+		@tests = []
+		find_tests
+	end
 
-if ARGV.size < 2 || ARGV[0] == "-h" || ARGV[0] == "--help"
-	print <<EOS
-Testgen is part of Mini Tester
-Copyright (c) 2009, Florian Rivoal
+	private
+	def find_tests
+		symbols = `readelf -sW #{@name}.o `
+		symbols.each_line do |line|
+			if line =~ /FUNC *GLOBAL.*test_(.*)/
+				@tests << $1
+			end
+		end
+	end
 
-Usage:
-	testgen <out.c> <test_suite_1> [<test_suite_2> ...]
+	public
+	def size
+		@tests.size
+	end
+	def each
+		@tests.each { |test| yield test }
+	end
+	def declarations
+		inject("") { |code,test| code + "void test_#{test}();\n" }
+	end
 
-The files designated as test suites must be .o files. Testgen will automatically
-find all the functions in these .o files beginning with the word "test_", and
-generate a simple c program to run all these tests.
-
-This programm should be compiled, then linked against mt.o, the test suites' o
-files, and all the .o files that the test suites depend on themselves.
+	def body
+		inject("void suite_#{@name}()\n{\n") do |code, test|
+			code + "\ttest_#{test}();\n" +
+			"\tif( mt_status->aborting ) { mt_status->aborting = 0; } else { mt_status->nb_test_run++; }\n"
+		end + "}\n"
+	end	
+	def runner
+		code = <<EOS
+	printf("Running test suite: \\"#{name}\\"...\\n");
+	suite_#{name}();
 EOS
-	exit 1
+	end
+	private :find_tests
 end
-
-generator = MiniTester::Generator.new
-ARGV[1..-1].each do |file|
-	generator.add_suite(MiniTester::Suite.new file)
 end
-File.open(ARGV[0],"w") do |file|
-	generator.write_output file
-end
-
-
-
-
