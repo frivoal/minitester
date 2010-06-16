@@ -61,7 +61,8 @@ class Suite
 	end	
 	def runner
 		code = <<EOS
-	printf("Running test suite: \\"#{name}\\"...\\n");
+	if( verbose )
+		printf("Running test suite: \\"#{name}\\"...\\n");
 	suite_#{name}();
 EOS
 	end

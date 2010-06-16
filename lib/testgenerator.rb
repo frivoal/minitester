@@ -46,9 +46,11 @@ EOS
 	end
 	def generate_main_opening
 		@program += <<EOS
-int main()
+int main( int argc, const char ** argv )
 {
 	int res;
+	int verbose;
+	mt_process_args( argc, argv, &verbose );
 	mt_status = malloc( sizeof( mt_status_t ) );
 	mt_init_status( mt_status, #{@suites.inject(0) {|sum, suite| sum + suite.size }} );
 
@@ -59,7 +61,7 @@ EOS
 	end
 	def generate_main_closing
 		@program += <<EOS
-	mt_print_status( mt_status );
+	mt_print_status( mt_status, verbose );
 
 	res = !mt_success( mt_status );
 	mt_cleanup_status( mt_status );

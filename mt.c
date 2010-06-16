@@ -23,6 +23,7 @@
 
 #include "mt.h"
 #include "stdlib.h"
+#include "string.h"
 #include "stdio.h"
 
 void mt_append_message( mt_status_t * stat, char * msg)
@@ -75,16 +76,19 @@ void mt_init_status( mt_status_t * stat, unsigned int total_test)
 	stat->aborting = 0;
 }
 
-void mt_print_status( mt_status_t * stat )
+void mt_print_status( mt_status_t * stat, int verbose )
 {
 	mt_message_node * node;
 
 	for( node = stat->messages.first; node != NULL; node = node->next)
 	{
-		printf(" * %s\n",node->msg);
+		fprintf(stderr, "%s\n",node->msg);
 	}
-	printf( "Number of tests executed: %d / %d\n", stat->nb_test_run, stat->nb_test);
-	printf( "Number of asserts passed: %d / %d\n", stat->nb_assert_passed, stat->nb_assert);
+	if( verbose )
+	{
+		printf( "Number of tests executed: %d / %d\n", stat->nb_test_run, stat->nb_test);
+		printf( "Number of asserts passed: %d / %d\n", stat->nb_assert_passed, stat->nb_assert);
+	}
 
 }
 
@@ -92,3 +96,22 @@ int mt_success( mt_status_t * stat )
 {
 	return stat->nb_test == stat->nb_test_run && stat->nb_assert == stat->nb_assert_passed;
 }
+
+void mt_process_args( int argc, const char ** argv, int * verbose )
+{
+	int i;
+	*verbose = 1;
+	int warn = 0;
+	for( i = 1; i < argc; i++ )
+	{
+		if( !strcmp( "-s", argv[i] ) )
+			*verbose = 0;
+		else
+			warn = 1;
+	}
+	if( warn )
+	{
+		printf( "Warning: the only option recognized by %s is \"-s\"\n", argv[0] );
+	}
+}
+

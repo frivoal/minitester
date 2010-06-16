@@ -37,7 +37,7 @@ do \
 	} \
 	else \
 	{ \
-		mt_append_message( mt_status, "Assertion failed in  " __FILE__ " line " MT_QUOTEME(__LINE__) ": " #expr ); \
+		mt_append_message( mt_status, __FILE__ ":" MT_QUOTEME(__LINE__) ": Assertion failed: " #expr ); \
 	} \
 } while(0)
 
@@ -45,7 +45,7 @@ do \
 do \
 { \
 	mt_status->aborting = 1; \
-	mt_append_message( mt_status, "Aborting from " __FILE__ " line " MT_QUOTEME(__LINE__) ); \
+	mt_append_message( mt_status, __FILE__ ":" MT_QUOTEME(__LINE__) ": Aborting" ); \
 	return; \
 } while(0)
 
@@ -77,8 +77,9 @@ mt_status_t * mt_status;
 void mt_init_status( mt_status_t * stat, unsigned int total_test );
 void mt_cleanup_status( mt_status_t * stat );
 void mt_append_message( mt_status_t * stat, char * msg );
-void mt_print_status( mt_status_t * stat );
+void mt_print_status( mt_status_t * stat, int verbose );
 int mt_success( mt_status_t * stat );
+void mt_process_args( int argc, const char ** argv, int * verbose );
 
 
 #endif // MT_H
