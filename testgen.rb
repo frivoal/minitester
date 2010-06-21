@@ -31,7 +31,7 @@ Testgen is part of Mini Tester
 Copyright (c) 2009, Florian Rivoal
 
 Usage:
-	testgen <out.c> <test_suite_1> [<test_suite_2> ...]
+	testgen.rb <out.c> <test_suite_1> [<test_suite_2> ...]
 
 The files designated as test suites must be .o files. Testgen will automatically
 find all the functions in these .o files beginning with the word "test_", and
